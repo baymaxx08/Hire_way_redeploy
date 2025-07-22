@@ -1,12 +1,40 @@
-# Getting Started with Create React App
+# HireWay - Job Portal Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive job portal application with React frontend and PHP backend that connects job seekers with employers.
 
-## Available Scripts
+## Features
+
+- **For Job Seekers:**
+  - Browse available jobs
+  - Apply for positions with resume upload
+  - Track application status
+  - User authentication and registration
+
+- **For Job Posters:**
+  - Post job listings
+  - Manage applications
+  - Review candidate resumes
+  - Update application status
+
+## Tech Stack
+
+- **Frontend:** React.js
+- **Backend:** PHP
+- **Database:** MySQL
+- **File Handling:** Resume upload and download functionality
+
+## Getting Started
+
+### Prerequisites
+- Node.js and npm
+- PHP server (XAMPP/WAMP/LAMP)
+- MySQL database
+
+### Frontend Setup
 
 In the project directory, you can run:
 
-### `npm start`
+#### `npm start`
 
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
@@ -14,57 +42,52 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
-### `npm test`
+#### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Launches the test runner in the interactive watch mode.
 
-### `npm run build`
+#### `npm run build`
 
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Backend Setup
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Place the `api` folder in your web server directory
+2. Configure database connection in `api/dbconnection.php`
+3. Set up the database with required tables
+4. Ensure proper permissions for the `api/uploads/` directory
 
-### `npm run eject`
+## Project Structure
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```
+├── src/
+│   ├── components/     # React components
+│   ├── pages/         # Application pages
+│   └── styles/        # CSS styling files
+├── api/               # PHP backend files
+│   ├── uploads/       # Resume file storage
+│   └── *.php         # API endpoints
+└── public/           # Public assets
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## API Endpoints
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- `POST /api/login.php` - User authentication
+- `POST /api/users.php` - User registration
+- `GET /api/jobs.php` - Fetch job listings
+- `POST /api/post_job.php` - Create new job posting
+- `POST /api/apply_job.php` - Submit job application
+- `GET /api/applications.php` - Fetch user applications
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Contributing
 
-## Learn More
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## License
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is open source and available under the [MIT License](LICENSE).
