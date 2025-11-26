@@ -17,31 +17,55 @@ app.use(express.static(path.join(__dirname, 'build')));
 
 // PostgreSQL Connection Pool (for Supabase)
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'postgres',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   port: 5432,
-  ssl: { rejectUnauthorized: false } // Required for Supabase
+  ssl: { rejectUnauthorized: false }, // Required for Supabase
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 20
 });
 
 // Handle pool errors
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  console.error('❌ Pool error:', err.message);
 });
 
-// Test database connection
-pool.query('SELECT NOW()', (err, result) => {
-  if (err) {
+// Test database connection immediately
+(async () => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
+    console.log('✅ Database connected successfully at', result.rows[0].now);
+    client.release();
+  } catch (err) {
     console.error('❌ Database connection failed:', err.message);
-  } else {
-    console.log('✅ Database connected successfully');
+    console.error('   Host:', process.env.DB_HOST);
+    console.error('   User:', process.env.DB_USER);
+    console.error('   Database:', process.env.DB_NAME);
   }
-});
+})();
 
-// Health Check
+// Health Check with diagnostics
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'API is running', database: 'PostgreSQL' });
+  console.log('Health check requested');
+  console.log('DB_HOST:', process.env.DB_HOST ? '✅ Set' : '❌ NOT SET');
+  console.log('DB_USER:', process.env.DB_USER ? '✅ Set' : '❌ NOT SET');
+  console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '✅ Set' : '❌ NOT SET');
+  console.log('DB_NAME:', process.env.DB_NAME ? '✅ Set' : '❌ NOT SET');
+  
+  res.json({ 
+    status: 'API is running', 
+    database: 'PostgreSQL',
+    env: {
+      DB_HOST: process.env.DB_HOST || 'NOT SET',
+      DB_USER: process.env.DB_USER || 'NOT SET',
+      DB_NAME: process.env.DB_NAME || 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV || 'NOT SET'
+    }
+  });
 });
 
 // ===================== AUTH ENDPOINTS =====================
