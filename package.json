@@ -25,6 +25,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "react-scripts start",
+    "prebuild": "echo 'Installing dependencies...' && npm install",
     "build": "react-scripts build",
     "server": "node server.js",
     "test": "react-scripts test",
