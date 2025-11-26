@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
 const app = express();
@@ -15,15 +15,14 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from React build directory
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Database Connection Pool
-const pool = mysql.createPool({
+// PostgreSQL Connection Pool (for Supabase)
+const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
+  user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'hireway',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  database: process.env.DB_NAME || 'postgres',
+  port: 5432,
+  ssl: { rejectUnauthorized: false } // Required for Supabase
 });
 
 // Health Check
@@ -42,15 +41,16 @@ app.post('/api/login.php', async (req, res) => {
       return res.json({ status: 0, message: 'Invalid input data' });
     }
 
-    const connection = await pool.getConnection();
-    const [users] = await connection.query('SELECT id, name, email, password, role FROM users WHERE email = ?', [email]);
-    connection.release();
+    const result = await pool.query(
+      'SELECT id, name, email, password, role FROM users WHERE email = $1',
+      [email]
+    );
 
-    if (users.length === 0) {
+    if (result.rows.length === 0) {
       return res.json({ status: 0, message: 'Invalid email or password' });
     }
 
-    const user = users[0];
+    const user = result.rows[0];
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
@@ -68,7 +68,7 @@ app.post('/api/login.php', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error('Login error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
 });
@@ -79,23 +79,24 @@ app.post('/api/users.php', async (req, res) => {
     const { name, email, password, role } = req.body;
 
     if (!name || !email || !password || !role) {
-      return res.json({ status: 0, message: 'Invalid input data' });
+      return res.json({ status: 0, message: 'All fields are required' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const connection = await pool.getConnection();
 
-    const [result] = await connection.query(
-      'INSERT INTO users (name, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
+    const result = await pool.query(
+      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
       [name, email, hashedPassword, role]
     );
 
-    connection.release();
-
-    res.json({ status: 1, message: 'User registered successfully' });
+    res.json({ 
+      status: 1, 
+      message: 'User registered successfully',
+      user: result.rows[0]
+    });
   } catch (error) {
-    console.error(error);
-    if (error.message.includes('ER_DUP_ENTRY')) {
+    console.error('Registration error:', error);
+    if (error.code === '23505') {
       res.json({ status: 0, message: 'Email already exists' });
     } else {
       res.json({ status: 0, message: 'Error: ' + error.message });
@@ -108,13 +109,10 @@ app.post('/api/users.php', async (req, res) => {
 // Get Jobs
 app.get('/api/jobs.php', async (req, res) => {
   try {
-    const connection = await pool.getConnection();
-    const [jobs] = await connection.query('SELECT * FROM jobs ORDER BY created_at DESC');
-    connection.release();
-
-    res.json(jobs);
+    const result = await pool.query('SELECT * FROM jobs WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    console.error('Get jobs error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
 });
@@ -122,18 +120,20 @@ app.get('/api/jobs.php', async (req, res) => {
 // Post Job
 app.post('/api/post_job.php', async (req, res) => {
   try {
-    const { jobTitle, companyName, location, salary, jobType, description, requirements, poster_email } = req.body;
+    const { title, company_name, location, salary, job_type, description, requirements, poster_email } = req.body;
 
-    const connection = await pool.getConnection();
-    await connection.query(
-      'INSERT INTO jobs (title, company_name, location, salary, job_type, description, requirements, poster_email, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-      [jobTitle, companyName, location, salary, jobType, description, requirements, poster_email]
+    if (!title || !company_name || !poster_email) {
+      return res.json({ status: 0, message: 'Required fields missing' });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO jobs (title, company_name, location, salary, job_type, description, requirements, poster_email, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [title, company_name, location, salary, job_type, description, requirements, poster_email, 'active']
     );
-    connection.release();
 
-    res.json({ status: 1, message: 'Job posted successfully' });
+    res.json({ status: 1, message: 'Job posted successfully', job: result.rows[0] });
   } catch (error) {
-    console.error(error);
+    console.error('Post job error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
 });
@@ -143,18 +143,20 @@ app.post('/api/post_job.php', async (req, res) => {
 // Apply for Job
 app.post('/api/apply_job.php', async (req, res) => {
   try {
-    const { userName, email, employer_email, jobTitle, companyName, resume } = req.body;
+    const { user_name, user_email, job_title, company_name, poster_email, job_id, resume_path } = req.body;
 
-    const connection = await pool.getConnection();
-    await connection.query(
-      'INSERT INTO applications (user_name, user_email, job_title, company_name, poster_email, status, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-      [userName, email, jobTitle, companyName, employer_email, 'pending']
+    if (!user_email || !job_id || !poster_email) {
+      return res.json({ status: 0, message: 'Required fields missing' });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO applications (user_name, user_email, job_title, company_name, poster_email, job_id, resume_path, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [user_name, user_email, job_title, company_name, poster_email, job_id, resume_path, 'pending']
     );
-    connection.release();
 
-    res.json({ status: 1, message: 'Application submitted successfully' });
+    res.json({ status: 1, message: 'Application submitted successfully', application: result.rows[0] });
   } catch (error) {
-    console.error(error);
+    console.error('Apply job error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
 });
@@ -168,16 +170,14 @@ app.get('/api/applications.php', async (req, res) => {
       return res.json({ status: 0, message: 'User email is required' });
     }
 
-    const connection = await pool.getConnection();
-    const [applications] = await connection.query(
-      'SELECT * FROM applications WHERE user_email = ? ORDER BY created_at DESC',
+    const result = await pool.query(
+      'SELECT * FROM applications WHERE user_email = $1 ORDER BY created_at DESC',
       [user_email]
     );
-    connection.release();
 
-    res.json({ status: 1, applications });
+    res.json({ status: 1, applications: result.rows });
   } catch (error) {
-    console.error(error);
+    console.error('Get applications error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
 });
@@ -191,16 +191,14 @@ app.get('/api/get_applications.php', async (req, res) => {
       return res.json({ status: 0, message: 'Poster email is required' });
     }
 
-    const connection = await pool.getConnection();
-    const [applications] = await connection.query(
-      'SELECT * FROM applications WHERE poster_email = ? ORDER BY created_at DESC',
+    const result = await pool.query(
+      'SELECT * FROM applications WHERE poster_email = $1 ORDER BY created_at DESC',
       [poster_email]
     );
-    connection.release();
 
-    res.json({ status: 1, applications });
+    res.json({ status: 1, applications: result.rows });
   } catch (error) {
-    console.error(error);
+    console.error('Get applications error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
 });
@@ -214,15 +212,69 @@ app.post('/api/update_application_status.php', async (req, res) => {
       return res.json({ status: 0, message: 'Invalid input data' });
     }
 
-    const connection = await pool.getConnection();
-    await connection.query('UPDATE applications SET status = ? WHERE id = ?', [status, id]);
-    connection.release();
+    const result = await pool.query(
+      'UPDATE applications SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [status, id]
+    );
 
-    res.json({ status: 1, message: 'Status updated successfully' });
+    if (result.rows.length === 0) {
+      return res.json({ status: 0, message: 'Application not found' });
+    }
+
+    res.json({ status: 1, message: 'Status updated successfully', application: result.rows[0] });
   } catch (error) {
-    console.error(error);
+    console.error('Update status error:', error);
     res.json({ status: 0, message: 'Error: ' + error.message });
   }
+});
+
+// ===================== CATEGORIES ENDPOINTS =====================
+
+// Get Categories
+app.get('/api/categories.php', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM categories ORDER BY name');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.json({ status: 0, message: 'Error: ' + error.message });
+  }
+});
+
+// ===================== NEWS ENDPOINTS =====================
+
+// Get News
+app.get('/api/news.php', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM news ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get news error:', error);
+    res.json({ status: 0, message: 'Error: ' + error.message });
+  }
+});
+
+// ===================== COMPANIES ENDPOINTS =====================
+
+// Get Companies
+app.get('/api/companies.php', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT DISTINCT company_name FROM jobs WHERE status = $1 ORDER BY company_name',
+      ['active']
+    );
+    res.json(result.rows.map(row => ({ name: row.company_name })));
+  } catch (error) {
+    console.error('Get companies error:', error);
+    res.json({ status: 0, message: 'Error: ' + error.message });
+  }
+});
+
+// ===================== DOWNLOAD RESUME ENDPOINT =====================
+
+// Placeholder for resume download
+app.get('/api/download_resume.php', (req, res) => {
+  res.json({ status: 0, message: 'Resume download not implemented' });
 });
 
 // ===================== STATIC FILE SERVING =====================
@@ -240,7 +292,21 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`HireWay running on port ${PORT}`);
-  console.log(`Frontend: http://localhost:${PORT}`);
-  console.log(`API: http://localhost:${PORT}/api`);
+  console.log(`
+╔════════════════════════════════════════╗
+║       HireWay Server Started          ║
+╠════════════════════════════════════════╣
+║ Port: ${PORT}                              ║
+║ Environment: ${process.env.NODE_ENV || 'development'}        ║
+║ Database: PostgreSQL (Supabase)       ║
+║ API: http://localhost:${PORT}/api/health  ║
+╚════════════════════════════════════════╝
+  `);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Shutting down gracefully...');
+  pool.end();
+  process.exit(0);
 });
