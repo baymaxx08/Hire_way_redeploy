@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../App'; // Import AuthContext
 import "../styles/LoginPage.css";
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 const LoginPage = () => {
     const [inputs, setInputs] = useState({ email: '', password: '' });
@@ -20,7 +21,7 @@ const LoginPage = () => {
         e.preventDefault();
         try {
             const response = await axios.post(
-                "http://localhost:80/phpdbms/HireWay/hireway/api/login.php",
+                API_ENDPOINTS.LOGIN,
                 inputs,
                 { headers: { "Content-Type": "application/json" } }
             );

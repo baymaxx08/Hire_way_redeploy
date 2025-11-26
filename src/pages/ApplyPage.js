@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import "../styles/ApplyPage.css";
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 const ApplyPage = () => {
-  const { jobId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -44,7 +44,7 @@ const ApplyPage = () => {
     formData.append('companyName', companyName); // Add company name
 
     try {
-      const response = await axios.post('http://localhost:80/phpdbms/HireWay/hireway/api/apply_job.php', formData, {
+      const response = await axios.post(API_ENDPOINTS.APPLY_JOB, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

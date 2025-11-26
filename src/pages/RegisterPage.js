@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import "../styles/Register.css";
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 const RegisterPage = () => {
     // const [inputs, setInputs] = useState({ name: '', email: '', password: '' });
@@ -21,7 +22,7 @@ const RegisterPage = () => {
         e.preventDefault();
         try {
             const response = await axios.post(
-                "http://localhost:80/phpdbms/HireWay/hireway/api/users.php",
+                API_ENDPOINTS.REGISTER,
                 inputs, // Sending inputs directly
                 { headers: { "Content-Type": "application/json" } }
             );

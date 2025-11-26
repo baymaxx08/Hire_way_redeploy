@@ -47,12 +47,12 @@ const Navbar = () => {
             <div className="logo">HireWay</div>
             <ul>
                 <li><Link to="/JOBS">Jobs</Link></li>
-                {isLoggedIn && userRole == 'job_seeker' && (
+                {isLoggedIn && userRole === 'job_seeker' && (
                     <React.Fragment>
                                        <li><Link to="/application-status">Application Status</Link></li>
                     </React.Fragment>
                 )}
-                {isLoggedIn && userRole == 'job_poster' && (
+                {isLoggedIn && userRole === 'job_poster' && (
                     <React.Fragment>
                         <li><Link to="/post-job">Post a Job</Link></li>
                         <li><Link to="/Job-poster-dashboard">Verify Applications</Link></li> {/* New link added */}

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: hireway
+    env: node
+    plan: starter
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DB_HOST
+        scope: run
+        sync: false
+      - key: DB_USER
+        scope: run
+        sync: false
+      - key: DB_PASSWORD
+        scope: run
+        sync: false
+      - key: DB_NAME
+        scope: run
+        sync: false
+    routes:
+      - path: /api
+        destination: /api

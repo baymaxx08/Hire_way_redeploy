@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import "../styles/JobPosterDashboard.css"; // Add your CSS styles
 import { AuthContext } from '../App'; // Import AuthContext
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 const JobPosterDashboard = () => {
   const { userEmail } = useContext(AuthContext); // Get the email from context
@@ -16,7 +17,7 @@ const JobPosterDashboard = () => {
           return;
         }
 
-        const response = await axios.get(`http://localhost:80/phpdbms/HireWay/hireway/api/get_applications.php?poster_email=${userEmail}`);
+        const response = await axios.get(`${API_ENDPOINTS.GET_APPLICATIONS}?poster_email=${userEmail}`);
         
         if (response.data.status === 1) {
           setApplications(response.data.applications);
@@ -34,7 +35,7 @@ const JobPosterDashboard = () => {
 
   const handleStatusChange = async (id, status) => {
     try {
-      const response = await axios.post(`http://localhost:80/phpdbms/HireWay/hireway/api/update_application_status.php`, {
+      const response = await axios.post(API_ENDPOINTS.UPDATE_APPLICATION_STATUS, {
         id,
         status,
       });
@@ -54,7 +55,7 @@ const JobPosterDashboard = () => {
 
   const handleDownloadResume = async (applicationId) => {
     try {
-      const response = await axios.get(`http://localhost:80/phpdbms/HireWay/hireway/api/download_resume.php`, {
+      const response = await axios.get(API_ENDPOINTS.DOWNLOAD_RESUME, {
         params: {
           application_id: applicationId,
           poster_email: userEmail,

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../App'; // Import AuthContext
 import "../styles/PostJobPage.css";
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 const PostJobPage = () => {
     const { userEmail } = useContext(AuthContext); // Get user email from context
@@ -34,7 +35,7 @@ const PostJobPage = () => {
         e.preventDefault();
         try {
             const response = await axios.post(
-                "http://localhost:80/phpdbms/HireWay/hireway/api/post_job.php",
+                API_ENDPOINTS.POST_JOB,
                 formData,
                 { headers: { "Content-Type": "application/json" } }
             );
