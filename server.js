@@ -25,9 +25,23 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false } // Required for Supabase
 });
 
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+// Test database connection
+pool.query('SELECT NOW()', (err, result) => {
+  if (err) {
+    console.error('❌ Database connection failed:', err.message);
+  } else {
+    console.log('✅ Database connected successfully');
+  }
+});
+
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'API is running' });
+  res.json({ status: 'API is running', database: 'PostgreSQL' });
 });
 
 // ===================== AUTH ENDPOINTS =====================
@@ -47,6 +61,7 @@ app.post('/api/login.php', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
+      console.log('❌ Login failed: User not found -', email);
       return res.json({ status: 0, message: 'Invalid email or password' });
     }
 
@@ -54,9 +69,11 @@ app.post('/api/login.php', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
+      console.log('❌ Login failed: Invalid password -', email);
       return res.json({ status: 0, message: 'Invalid email or password' });
     }
 
+    console.log('✅ User logged in:', email);
     res.json({
       status: 1,
       message: 'Login successful',
@@ -68,8 +85,8 @@ app.post('/api/login.php', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.json({ status: 0, message: 'Error: ' + error.message });
+    console.error('❌ Login error:', error.message, error.code);
+    res.status(500).json({ status: 0, message: 'Server error: ' + error.message });
   }
 });
 
@@ -89,17 +106,18 @@ app.post('/api/users.php', async (req, res) => {
       [name, email, hashedPassword, role]
     );
 
+    console.log('✅ User registered:', email);
     res.json({ 
       status: 1, 
       message: 'User registered successfully',
       user: result.rows[0]
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('❌ Registration error:', error.message, error.code);
     if (error.code === '23505') {
       res.json({ status: 0, message: 'Email already exists' });
     } else {
-      res.json({ status: 0, message: 'Error: ' + error.message });
+      res.status(500).json({ status: 0, message: 'Server error: ' + error.message });
     }
   }
 });
