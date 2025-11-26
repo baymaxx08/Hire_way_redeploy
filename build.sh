@@ -1,7 +1,19 @@
 #!/bin/bash
 set -e
-echo "Installing dependencies..."
-npm install
-echo "Building React app..."
+
+echo "=========================================="
+echo "HireWay Build Script"
+echo "=========================================="
+
+echo ""
+echo "Step 1: Installing dependencies..."
+npm ci || npm install
+
+echo ""
+echo "Step 2: Building React application..."
 npm run build
-echo "Build complete!"
+
+echo ""
+echo "=========================================="
+echo "Build completed successfully!"
+echo "=========================================="
