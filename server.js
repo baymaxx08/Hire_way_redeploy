@@ -22,6 +22,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: 5432,
+  family: 4, // Force IPv4 connection (fixes ENETUNREACH on Render)
   ssl: { rejectUnauthorized: false }, // Required for Supabase
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
